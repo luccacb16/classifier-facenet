@@ -97,6 +97,7 @@ if __name__ == '__main__':
     accumulation = args.accumulation
     epochs = args.epochs
     emb_size = args.emb_size
+    lr = args.lr
     num_workers = args.num_workers
     DATA_PATH = args.data_path
     CHECKPOINT_PATH = args.checkpoint_path
@@ -113,7 +114,8 @@ if __name__ == '__main__':
         'num_workers': num_workers,
         'data_path': DATA_PATH,
         'checkpoint_path': CHECKPOINT_PATH,
-        'colab': colab
+        'colab': colab,
+        'lr': lr,
     }
 
     if USING_WANDB:
@@ -153,7 +155,7 @@ if __name__ == '__main__':
     
     # Scaler e Otimizador
     scaler = GradScaler()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     
     # -----
     
