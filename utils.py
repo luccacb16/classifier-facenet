@@ -72,13 +72,13 @@ def evaluate(model, val_dataloader, criterion, dtype=torch.bfloat16, device='cud
 
     return accuracy, loss
     
-def save_checkpoint(model, path):
+def save_checkpoint(model, path, filename):
     if not os.path.exists(path):
         os.makedirs(path)
         
     # Salvar o estado do modelo removendo _orig_mod. do começo das chaves do dicionário -> torch.compile
     model_state_dict = {k.replace('_orig_mod.', ''): v for k, v in model.state_dict().items()}   
-    torch.save(model_state_dict, path)            
+    torch.save(model_state_dict, os.path.join(path, filename))            
     
 # --------------------------------------------------------------------------------------------------------
     

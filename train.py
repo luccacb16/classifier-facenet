@@ -86,7 +86,7 @@ def train(
             })
 
         print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.0e}")
-        save_checkpoint(model, os.path.join(checkpoint_path, f'epoch_{epoch+1}.pt'))
+        save_checkpoint(model, checkpoint_path, f'epoch_{epoch+1}.pt')
         
 # --------------------------------------------------------------------------------------------------------
 
@@ -131,6 +131,7 @@ if __name__ == '__main__':
     test_df = pd.read_csv(os.path.join(DATA_PATH, 'CASIA/casia_test.csv'))
     test_df = test_df.sample(n=NUM_VAL_SAMPLES).reset_index(drop=True)
     test_df['path'] = test_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'CASIA/casia-faces/', x))
+    test_df['id'], _ = pd.factorize(test_df['id']) 
     
     # Datasets e Loaders
     train_dataset = CustomDataset(train_df, transform=transform, dtype=DTYPE)
