@@ -1,4 +1,5 @@
 cmd="python3 train.py \
+  --model ResNet18 \
   --batch_size 128 \
   --accumulation 1024 \
   --epochs 30 \

@@ -4,7 +4,7 @@ import os
 
 import torch
 import torch.nn as nn
-from torchvision.transforms import Compose, ToTensor, Normalize, Resize
+from torchvision.transforms import Compose, ToTensor, Normalize, Resize, RandomResizedCrop, RandomHorizontalFlip, RandomRotation, ColorJitter
 from torch.utils.data import Dataset
 from torch.amp import autocast
 
@@ -14,6 +14,15 @@ transform = Compose(
     ToTensor(), 
     Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ]
+)
+
+aug_transform = Compose(
+    RandomResizedCrop(160, scale=(0.8, 1.0)),
+    RandomHorizontalFlip(),
+    RandomRotation(15),
+    ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+    ToTensor(),
+    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 )
 
 # --------------------------------------------------------------------------------------------------------
@@ -84,6 +93,7 @@ def save_checkpoint(model, path, filename):
     
 def parse_args():
     parser = argparse.ArgumentParser(description="Treinar a rede neural como classificador")
+    parser.add_argument('--model', type=str, default='faceresnet50', help='Modelo a ser utilizado (default: faceresnet50)')
     parser.add_argument('--batch_size', type=int, default=128, help='Tamanho do batch (default: 128)')
     parser.add_argument('--accumulation', type=int, default=1024, help='Acumulação de gradientes (default: 1024)')
     parser.add_argument('--epochs', type=int, default=30, help='Número de epochs (default: 30)')

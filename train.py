@@ -11,6 +11,7 @@ from torch.amp import GradScaler, autocast
 import wandb.wandb_torch
 
 from models.faceresnet50 import FaceResNet50
+from models.faceresnet18 import FaceResNet18
 
 from utils import parse_args, transform, CustomDataset, save_checkpoint, evaluate
 
@@ -28,6 +29,11 @@ if torch.cuda.is_available():
         
 NUM_VAL_SAMPLES = 128
 USING_WANDB = False
+
+model_map = {
+    'faceresnet50': FaceResNet50,
+    'faceresnet18': FaceResNet18
+}
         
 # --------------------------------------------------------------------------------------------------------
     
@@ -93,6 +99,7 @@ def train(
 if __name__ == '__main__':
     args = parse_args()
     
+    model_name = args.model
     batch_size = args.batch_size
     accumulation = args.accumulation
     epochs = args.epochs
@@ -152,7 +159,12 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
     
     # Modelo
-    model = FaceResNet50(n_classes=n_classes, emb_size=emb_size).to(device)
+    #model = FaceResNet50(n_classes=n_classes, emb_size=emb_size).to(device)
+    if model_name.lower() in model_map:
+        model = model_map[model_name.lower()](n_classes=n_classes, emb_size=emb_size).to(device)
+    else:
+        raise ValueError(f'Model {model_name} not found')
+        
     if not colab:
         model = torch.compile(model)
     
@@ -161,7 +173,7 @@ if __name__ == '__main__':
     
     # Scaler e Otimizador
     scaler = GradScaler()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
     
     # -----
     
