@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torchvision.models import resnet50
 
 class FaceResNet50(nn.Module):
@@ -13,6 +12,7 @@ class FaceResNet50(nn.Module):
         self.fc1 = nn.Linear(2048, emb_size)
         self.bn1 = nn.BatchNorm1d(emb_size)
         self.relu = nn.ReLU(inplace=True)
+        self.dropout = nn.Dropout(p=0.3)
         
         self.fc2 = nn.Linear(emb_size, n_classes)
 
@@ -25,7 +25,7 @@ class FaceResNet50(nn.Module):
         x = self.bn1(x)
         x = self.relu(x)
         
-        x = F.normalize(x, p=2, dim=1)
+        x = self.dropout(x)
         
         x = self.fc2(x)
         return x
@@ -34,7 +34,7 @@ class FaceResNet50(nn.Module):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm2d):
+            elif isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):

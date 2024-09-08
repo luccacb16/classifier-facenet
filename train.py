@@ -128,12 +128,18 @@ if __name__ == '__main__':
     # Dados
     train_df = pd.read_csv(os.path.join(DATA_PATH, 'CASIA/casia_train.csv'))
     train_df['path'] = train_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'CASIA/casia-faces/', x))
+    
+    # Reduzindo a quantidade de classes (selecionar classes com >= 200 <= 250 imagens)
+    train_df = train_df.groupby('id').filter(lambda x: len(x) >= 200 and len(x) <= 250)
+    train_df['id'], _ = pd.factorize(train_df['id'])
     n_classes = train_df['id'].nunique()
     
     test_df = pd.read_csv(os.path.join(DATA_PATH, 'CASIA/casia_test.csv'))
-    test_df = test_df.sample(n=NUM_VAL_SAMPLES).reset_index(drop=True)
     test_df['path'] = test_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'CASIA/casia-faces/', x))
-    test_df['id'], _ = pd.factorize(test_df['id']) 
+    
+    # Selecionando um número fixo de amostras para validação
+    test_df = test_df.sample(n=NUM_VAL_SAMPLES).reset_index(drop=True)
+    test_df['id'], _ = pd.factorize(test_df['id'])
     
     # Datasets e Loaders
     train_dataset = CustomDataset(train_df, transform=transform, dtype=DTYPE)
@@ -164,7 +170,7 @@ if __name__ == '__main__':
     print(f'Device name: {torch.cuda.get_device_name()}')
     print(f'Using tensor type: {DTYPE}')
     
-    print(f'\nImagens: {len(train_df)} | Identidades: {n_classes}\n')
+    print(f'\nImagens: {len(train_df)} | Identidades: {n_classes} | imgs/classes: {len(train_df) / n_classes:.2f}\n')
     
     train(
         model              = model,
