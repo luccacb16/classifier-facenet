@@ -13,7 +13,7 @@ import wandb.wandb_torch
 from models.faceresnet50 import FaceResNet50
 from models.faceresnet18 import FaceResNet18
 
-from utils import parse_args, transform, CustomDataset, save_checkpoint, evaluate
+from utils import parse_args, transform, aug_transform, CustomDataset, save_checkpoint, evaluate
 
 torch.set_float32_matmul_precision('high')
 torch.backends.cudnn.benchmark = True
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     test_df['id'], _ = pd.factorize(test_df['id'])
     
     # Datasets e Loaders
-    train_dataset = CustomDataset(train_df, transform=transform, dtype=DTYPE)
+    train_dataset = CustomDataset(train_df, transform=aug_transform, dtype=DTYPE)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=num_workers)
     
     val_dataset = CustomDataset(test_df, transform=transform, dtype=DTYPE)
