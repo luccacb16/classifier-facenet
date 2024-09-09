@@ -45,3 +45,9 @@ class FaceResNet50(nn.Module):
                 else:
                     nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
                 nn.init.constant_(m.bias, 0)
+                
+    def get_embedding(self, x):
+        x = self.features(x)
+        x = torch.flatten(x, 1)
+        x = self.bn1(x)
+        return x

@@ -22,6 +22,7 @@ class FaceResNet18(nn.Module):
         x = self.bn1(x)
         x = self.dropout(x)
         x = self.fc(x)
+        
         return x
 
     def _initialize_weights(self):

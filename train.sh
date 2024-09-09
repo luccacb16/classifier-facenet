@@ -7,6 +7,7 @@ cmd="python3 train.py \
   --lr 1e-4 \
   --num_workers 1 \
   --data_path ./data/ \
+  --dataset PINS \
   --checkpoint_path ./checkpoints/ \
   --colab False"
 
