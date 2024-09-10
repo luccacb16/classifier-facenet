@@ -1,9 +1,10 @@
+import os
 import torch
 import torch.nn as nn
 from torchvision.models import resnet18
 
 class FaceResNet18(nn.Module):
-    def __init__(self, n_classes, emb_size):
+    def __init__(self, n_classes, emb_size=1):
         super(FaceResNet18, self).__init__()
         resnet = resnet18()
         
@@ -15,6 +16,9 @@ class FaceResNet18(nn.Module):
         self.fc = nn.Linear(512, n_classes)
 
         self._initialize_weights()
+        
+        self.n_classes = n_classes
+        self.emb_size = emb_size
 
     def forward(self, x):
         x = self.features(x)
@@ -43,3 +47,23 @@ class FaceResNet18(nn.Module):
         x = torch.flatten(x, 1)
         x = self.bn1(x)
         return x
+    
+    def save_checkpoint(self, path, filename):
+        if not os.path.exists(path):
+            os.makedirs(path)
+            
+        model_state_dict = {k.replace('_orig_mod.', ''): v for k, v in self.state_dict().items()}
+        
+        checkpoint = {
+            'state_dict': model_state_dict,
+            'n_classes': self.n_classes,
+            'emb_size': self.emb_size
+        }
+        torch.save(checkpoint, os.path.join(path, filename))
+        
+    @staticmethod
+    def load_checkpoint(path):
+        checkpoint = torch.load(path)
+        model = FaceResNet18(n_classes=checkpoint['n_classes'], emb_size=checkpoint['emb_size'])
+        model.load_state_dict(checkpoint['state_dict'])
+        return model

@@ -1,6 +1,6 @@
 import argparse
 from PIL import Image
-import os
+import math
 
 import torch
 import torch.nn as nn
@@ -78,14 +78,22 @@ def evaluate(model, val_dataloader, criterion, dtype=torch.bfloat16, device='cud
     loss = total_loss / len(val_dataloader)
 
     return accuracy, loss
-    
-def save_checkpoint(model, path, filename):
-    if not os.path.exists(path):
-        os.makedirs(path)
+
+class WarmUpCosineAnnealingLR(torch.optim.lr_scheduler.LambdaLR):
+    def __init__(self, optimizer, epochs: int, warmup_steps: int, min_lr: float, max_lr: float):
+        self.epochs = epochs
+        self.warmup_steps = warmup_steps
+        self.min_lr = min_lr
+        self.max_lr = max_lr
         
-    # Salvar o estado do modelo removendo _orig_mod. do começo das chaves do dicionário -> torch.compile
-    model_state_dict = {k.replace('_orig_mod.', ''): v for k, v in model.state_dict().items()}   
-    torch.save(model_state_dict, os.path.join(path, filename))            
+        super().__init__(optimizer, lr_lambda=self.lr_lambda)
+
+    def lr_lambda(self, step: int):
+        if step < self.warmup_steps:
+            return step / self.warmup_steps
+        else:
+            progress = (step - self.warmup_steps) / (self.epochs - self.warmup_steps)
+            return self.min_lr + (self.max_lr - self.min_lr) * 0.5 * (1 + math.cos(math.pi * progress))
     
 # --------------------------------------------------------------------------------------------------------
     
@@ -95,8 +103,10 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=128, help='Tamanho do batch (default: 128)')
     parser.add_argument('--accumulation', type=int, default=1024, help='Acumulação de gradientes (default: 1024)')
     parser.add_argument('--epochs', type=int, default=30, help='Número de epochs (default: 30)')
-    parser.add_argument('--emb_size', type=int, default=512, help='Tamanho do embedding (default: 512)')
-    parser.add_argument('--lr', type=float, default=1e-4, help='Taxa de aprendizado (default: 1e-4)')
+    parser.add_argument('--emb_size', type=int, default=256, help='Tamanho do embedding (default: 256)')
+    parser.add_argument('--min_lr', type=float, default=1e-5, help='Taxa de aprendizado mínima (default: 1e-05)')
+    parser.add_argument('--max_lr', type=float, default=1e-3, help='Taxa de aprendizado máxima (default: 1e-3)')
+    parser.add_argument('--warmup_steps', type=int, default=5, help='Número de steps (epochs) para warmup (default: 5)')
     parser.add_argument('--num_workers', type=int, default=1, help='Número de workers para o DataLoader (default: 1)')
     parser.add_argument('--data_path', type=str, default='./data/', help='Caminho para o dataset (default: ./data/)')
     parser.add_argument('--dataset', type=str, default='CASIA', help='Dataset a ser utilizado (default: CASIA)')

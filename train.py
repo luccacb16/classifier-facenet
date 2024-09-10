@@ -2,6 +2,7 @@ import pandas as pd
 from tqdm import tqdm
 import os
 import wandb
+import math
 from dotenv import load_dotenv
 
 import torch
@@ -13,7 +14,7 @@ import wandb.wandb_torch
 from models.faceresnet50 import FaceResNet50
 from models.faceresnet18 import FaceResNet18
 
-from utils import parse_args, transform, aug_transform, CustomDataset, save_checkpoint, evaluate
+from utils import parse_args, transform, aug_transform, CustomDataset, evaluate, WarmUpCosineAnnealingLR
 
 torch.set_float32_matmul_precision('high')
 torch.backends.cudnn.benchmark = True
@@ -49,6 +50,7 @@ def train(
     criterion: nn.Module,
     optimizer: torch.optim.Optimizer,
     scaler: GradScaler,
+    scheduler: torch.optim.lr_scheduler,
     accumulation_steps: int,
     epochs: int,
     dtype: torch.dtype,
@@ -82,6 +84,8 @@ def train(
                 
             running_loss += loss.item() * accumulation_steps
 
+        scheduler.step()
+        
         progress_bar.close()
         
         epoch_loss = running_loss / len(train_loader)
@@ -97,7 +101,7 @@ def train(
             })
 
         print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.0e}")
-        save_checkpoint(model, checkpoint_path, f'epoch_{epoch+1}.pt')
+        model.save_checkpoint(model, checkpoint_path, f'epoch_{epoch+1}.pt')
         
 # --------------------------------------------------------------------------------------------------------
 
@@ -109,7 +113,9 @@ if __name__ == '__main__':
     accumulation = args.accumulation
     epochs = args.epochs
     emb_size = args.emb_size
-    lr = args.lr
+    min_lr = args.min_lr
+    max_lr = args.max_lr
+    warmup_steps = args.warmup_steps
     num_workers = args.num_workers
     DATA_PATH = args.data_path
     dataset = args.dataset.upper()
@@ -128,7 +134,8 @@ if __name__ == '__main__':
         'data_path': DATA_PATH,
         'checkpoint_path': CHECKPOINT_PATH,
         'colab': colab,
-        'lr': lr,
+        'min_lr': min_lr,
+        'max_lr': max_lr
     }
 
     if USING_WANDB:
@@ -160,7 +167,6 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
     
     # Modelo
-    #model = FaceResNet50(n_classes=n_classes, emb_size=emb_size).to(device)
     if model_name.lower() in model_map:
         model = model_map[model_name.lower()](n_classes=n_classes, emb_size=emb_size).to(device)
     else:
@@ -172,9 +178,10 @@ if __name__ == '__main__':
     if USING_WANDB:
         wandb.watch(model, log='all', log_freq=accumulation_steps)
     
-    # Scaler e Otimizador
+    # Scaler, Otimizador e Scheduler
     scaler = GradScaler()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=max_lr, weight_decay=1e-5)
+    scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_steps, min_lr, max_lr)
     
     # -----
     
@@ -192,6 +199,7 @@ if __name__ == '__main__':
         criterion          = criterion,
         optimizer          = optimizer,
         scaler             = scaler,
+        scheduler          = scheduler,
         accumulation_steps = accumulation_steps,
         epochs             = epochs,
         dtype              = DTYPE,
