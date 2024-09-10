@@ -101,7 +101,7 @@ def train(
             })
 
         print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.0e}")
-        model.save_checkpoint(model, checkpoint_path, f'epoch_{epoch+1}.pt')
+        model.save_checkpoint(checkpoint_path, f'epoch_{epoch+1}.pt')
         
 # --------------------------------------------------------------------------------------------------------
 
