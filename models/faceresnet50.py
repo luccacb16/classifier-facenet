@@ -28,7 +28,6 @@ class FaceResNet50(nn.Module):
         x = torch.flatten(x, 1)
         x = self.fc1(x)
         x = self.bn1(x)
-        x = F.normalize(x, p=2, dim=1)
         x = self.relu(x)
         
         x = self.dropout(x)

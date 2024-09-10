@@ -83,8 +83,6 @@ def train(
                 progress_bar.update(1)
                 
             running_loss += loss.item() * accumulation_steps
-
-        scheduler.step()
         
         progress_bar.close()
         
@@ -100,8 +98,10 @@ def train(
                 'lr': optimizer.param_groups[0]['lr']
             })
 
-        print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.0e}")
+        print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
         model.save_checkpoint(checkpoint_path, f'epoch_{epoch+1}.pt')
+        
+        #scheduler.step()
         
 # --------------------------------------------------------------------------------------------------------
 
