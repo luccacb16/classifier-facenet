@@ -29,6 +29,7 @@ if torch.cuda.is_available():
         
 NUM_VAL_SAMPLES = 128
 USING_WANDB = False
+LAST_EPOCH = -1
 
 model_map = {
     'faceresnet50': FaceResNet50,
@@ -56,7 +57,9 @@ def train(
     device: str,
     checkpoint_path: str
 ):
-    for epoch in range(epochs):
+    
+    start_epoch = LAST_EPOCH + 1
+    for epoch in range(start_epoch, epochs):
         model.train()
         running_loss = 0.0
         optimizer.zero_grad()
@@ -114,7 +117,7 @@ if __name__ == '__main__':
     emb_size = args.emb_size
     min_lr = args.min_lr
     max_lr = args.max_lr
-    last_epoch = args.last_epoch
+    LAST_EPOCH = args.last_epoch
     warmup_epochs = args.warmup_epochs
     num_workers = args.num_workers
     DATA_PATH = args.data_path
@@ -184,7 +187,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam([
         {'params': model.parameters(), 'lr': 1e-3, 'weight_decay': 1e-5, 'initial_lr': max_lr}
     ])
-    scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_epochs, min_lr, max_lr, last_epoch)
+    scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_epochs, min_lr, max_lr, LAST_EPOCH-1)
     
     # -----
     
