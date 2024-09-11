@@ -65,7 +65,11 @@ def train(
         optimizer.zero_grad()
         
         num_batches = len(train_loader) // accumulation_steps
-        progress_bar = tqdm(range(num_batches), desc=f"Epoch {epoch+1}/{epochs}", unit="batch")
+        if LAST_EPOCH != -1:
+            progress_bar = tqdm(range(num_batches), desc=f"Epoch {epoch}/{epochs}", unit="batch")
+        else:
+            progress_bar = tqdm(range(num_batches), desc=f"Epoch {epoch+1}/{epochs}", unit="batch")
+            
         
         for step, (inputs, labels) in enumerate(train_loader):
             inputs, labels = inputs.to(device, dtype=dtype), labels.to(device)
