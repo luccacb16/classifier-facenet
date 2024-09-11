@@ -199,7 +199,7 @@ if __name__ == '__main__':
         criterion          = criterion,
         optimizer          = optimizer,
         scaler             = scaler,
-        scheduler          = None,
+        scheduler          = scheduler,
         accumulation_steps = accumulation_steps,
         epochs             = epochs,
         dtype              = DTYPE,
