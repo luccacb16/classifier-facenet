@@ -114,6 +114,7 @@ if __name__ == '__main__':
     emb_size = args.emb_size
     min_lr = args.min_lr
     max_lr = args.max_lr
+    last_epoch = args.last_epoch
     warmup_epochs = args.warmup_epochs
     num_workers = args.num_workers
     DATA_PATH = args.data_path
@@ -180,8 +181,10 @@ if __name__ == '__main__':
     
     # Scaler, Otimizador e Scheduler
     scaler = GradScaler()
-    optimizer = torch.optim.Adam(model.parameters(), lr=max_lr, weight_decay=1e-5)
-    scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_epochs, min_lr, max_lr)
+    optimizer = torch.optim.Adam([
+        {'params': model.parameters(), 'lr': 1e-3, 'weight_decay': 1e-5, 'initial_lr': max_lr}
+    ])
+    scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_epochs, min_lr, max_lr, last_epoch)
     
     # -----
     

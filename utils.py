@@ -108,6 +108,7 @@ def parse_args():
     parser.add_argument('--emb_size', type=int, default=256, help='Tamanho do embedding (default: 256)')
     parser.add_argument('--min_lr', type=float, default=1e-5, help='Taxa de aprendizado mínima (default: 1e-5)')
     parser.add_argument('--max_lr', type=float, default=1e-3, help='Taxa de aprendizado máxima (default: 1e-3)')
+    parser.add_argument('--last_epoch', type=int, default=-1, help='Última epoch (default: -1)')
     parser.add_argument('--warmup_epochs', type=int, default=5, help='Número de epochs para warmup (default: 5)')
     parser.add_argument('--num_workers', type=int, default=1, help='Número de workers para o DataLoader (default: 1)')
     parser.add_argument('--data_path', type=str, default='./data/', help='Caminho para o dataset (default: ./data/)')
