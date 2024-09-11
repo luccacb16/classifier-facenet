@@ -2,7 +2,6 @@ import pandas as pd
 from tqdm import tqdm
 import os
 import wandb
-import math
 from dotenv import load_dotenv
 
 import torch
@@ -101,7 +100,7 @@ def train(
         print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
         model.save_checkpoint(checkpoint_path, f'epoch_{epoch+1}.pt')
         
-        #scheduler.step()
+        scheduler.step()
         
 # --------------------------------------------------------------------------------------------------------
 
@@ -115,7 +114,7 @@ if __name__ == '__main__':
     emb_size = args.emb_size
     min_lr = args.min_lr
     max_lr = args.max_lr
-    warmup_steps = args.warmup_steps
+    warmup_epochs = args.warmup_epochs
     num_workers = args.num_workers
     DATA_PATH = args.data_path
     dataset = args.dataset.upper()
@@ -135,7 +134,8 @@ if __name__ == '__main__':
         'checkpoint_path': CHECKPOINT_PATH,
         'colab': colab,
         'min_lr': min_lr,
-        'max_lr': max_lr
+        'max_lr': max_lr,
+        'warmup_epochs': warmup_epochs,
     }
 
     if USING_WANDB:
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     # Scaler, Otimizador e Scheduler
     scaler = GradScaler()
     optimizer = torch.optim.Adam(model.parameters(), lr=max_lr, weight_decay=1e-5)
-    scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_steps, min_lr, max_lr)
+    scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_epochs, min_lr, max_lr)
     
     # -----
     
@@ -199,7 +199,7 @@ if __name__ == '__main__':
         criterion          = criterion,
         optimizer          = optimizer,
         scaler             = scaler,
-        scheduler          = scheduler,
+        scheduler          = None,
         accumulation_steps = accumulation_steps,
         epochs             = epochs,
         dtype              = DTYPE,

@@ -7,6 +7,7 @@ import torch.nn as nn
 from torchvision.transforms import Compose, ToTensor, Normalize, Resize, RandomResizedCrop, RandomHorizontalFlip, RandomRotation, ColorJitter
 from torch.utils.data import Dataset
 from torch.amp import autocast
+from torch.optim.lr_scheduler import _LRScheduler
 
 transform = Compose([
     Resize((160, 160)),
@@ -79,21 +80,22 @@ def evaluate(model, val_dataloader, criterion, dtype=torch.bfloat16, device='cud
 
     return accuracy, loss
 
-class WarmUpCosineAnnealingLR(torch.optim.lr_scheduler.LambdaLR):
-    def __init__(self, optimizer, epochs: int, warmup_steps: int, min_lr: float, max_lr: float):
+class WarmUpCosineAnnealingLR(_LRScheduler):
+    def __init__(self, optimizer, epochs, warmup_epochs, min_lr, max_lr, last_epoch=-1):
         self.epochs = epochs
-        self.warmup_steps = warmup_steps
         self.min_lr = min_lr
         self.max_lr = max_lr
-        
-        super().__init__(optimizer, lr_lambda=self.lr_lambda)
+        self.warmup_epochs = warmup_epochs
+        super(WarmUpCosineAnnealingLR, self).__init__(optimizer, last_epoch)
 
-    def lr_lambda(self, step: int):
-        if step < self.warmup_steps:
-            return step / self.warmup_steps
+    def get_lr(self):
+        if self.last_epoch < self.warmup_epochs:
+            alpha = self.last_epoch / self.warmup_epochs
+            return [self.min_lr + (self.max_lr - self.min_lr) * alpha for _ in self.base_lrs]
         else:
-            progress = (step - self.warmup_steps) / (self.epochs - self.warmup_steps)
-            return self.min_lr + (self.max_lr - self.min_lr) * 0.5 * (1 + math.cos(math.pi * progress))
+            progress = (self.last_epoch - self.warmup_epochs) / (self.epochs - self.warmup_epochs)
+            cosine_decay = 0.5 * (1 + math.cos(math.pi * progress))
+            return [self.min_lr + (self.max_lr - self.min_lr) * cosine_decay for _ in self.base_lrs]
     
 # --------------------------------------------------------------------------------------------------------
     
@@ -104,9 +106,9 @@ def parse_args():
     parser.add_argument('--accumulation', type=int, default=1024, help='Acumulação de gradientes (default: 1024)')
     parser.add_argument('--epochs', type=int, default=30, help='Número de epochs (default: 30)')
     parser.add_argument('--emb_size', type=int, default=256, help='Tamanho do embedding (default: 256)')
-    parser.add_argument('--min_lr', type=float, default=1e-5, help='Taxa de aprendizado mínima (default: 1e-05)')
+    parser.add_argument('--min_lr', type=float, default=1e-5, help='Taxa de aprendizado mínima (default: 1e-5)')
     parser.add_argument('--max_lr', type=float, default=1e-3, help='Taxa de aprendizado máxima (default: 1e-3)')
-    parser.add_argument('--warmup_steps', type=int, default=5, help='Número de steps (epochs) para warmup (default: 5)')
+    parser.add_argument('--warmup_epochs', type=int, default=5, help='Número de epochs para warmup (default: 5)')
     parser.add_argument('--num_workers', type=int, default=1, help='Número de workers para o DataLoader (default: 1)')
     parser.add_argument('--data_path', type=str, default='./data/', help='Caminho para o dataset (default: ./data/)')
     parser.add_argument('--dataset', type=str, default='CASIA', help='Dataset a ser utilizado (default: CASIA)')

@@ -4,7 +4,7 @@ import torch.nn as nn
 from torchvision.models import resnet18
 
 class FaceResNet18(nn.Module):
-    def __init__(self, n_classes, emb_size=1):
+    def __init__(self, n_classes=0, emb_size=1):
         super(FaceResNet18, self).__init__()
         resnet = resnet18()
         

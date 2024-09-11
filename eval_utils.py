@@ -9,15 +9,18 @@ from torch.utils.data import Dataset, DataLoader
 
 # get_pairs -> calcular distancias -> ROC -> accuracy -> dist stats
 
-def get_pairs(ids_df: pd.DataFrame, n_pairs: int | None = None) -> pd.DataFrame:
+def get_pairs(ids_df: pd.DataFrame, n_pairs: int | None = None, random_state: int = 42) -> pd.DataFrame:
     if n_pairs is None:
         n_pairs = len(ids_df)
 
+    # Configura o gerador de números aleatórios com uma semente fixa
+    rng = np.random.default_rng(random_state)
+    
     pairs = []
     i = 0
     while i < n_pairs // 2:
-        # Escolhe aleatoriamente uma linha/índice do dataframe
-        row = ids_df.sample(1).iloc[0]
+        # Escolhe aleatoriamente uma linha/índice do dataframe usando o RNG configurado
+        row = ids_df.sample(1, random_state=rng).iloc[0]
         
         # Encontra outras imagens com o mesmo ID
         same_id_df = ids_df[(ids_df['id'] == row['id']) & ~(ids_df.index == row.name)]
@@ -25,8 +28,8 @@ def get_pairs(ids_df: pd.DataFrame, n_pairs: int | None = None) -> pd.DataFrame:
             continue  # Se não houver outras imagens com o mesmo ID, tenta novamente
         
         # Seleciona aleatoriamente uma imagem com o mesmo ID e uma com um ID diferente
-        same = same_id_df.sample(1)
-        diff = ids_df[ids_df['id'] != row['id']].sample(1)
+        same = same_id_df.sample(1, random_state=rng)
+        diff = ids_df[ids_df['id'] != row['id']].sample(1, random_state=rng)
 
         # Adiciona os pares ao resultado final
         pairs.append([row['path'], same['path'].values[0], 1])  # 1 significa que são do mesmo ID
@@ -56,8 +59,18 @@ class PairsDataset(Dataset):
             img2 = self.transform(img2)
         
         return img1, img2, label
+    
+def cosine_distance(x1, x2):
+    return 1 - torch.nn.functional.cosine_similarity(x1, x2)
 
-def calculate_distances(model: nn.Module, pairs: pd.DataFrame, batch_size=32, transform=None, device='cuda') -> pd.DataFrame:
+def calculate_distances(model: nn.Module, pairs: pd.DataFrame, batch_size=32, transform=None, device='cuda', metric='L2') -> pd.DataFrame:
+    metric_map = {
+        'L2': torch.nn.functional.pairwise_distance,
+        'cosine': cosine_distance
+    }
+    if metric not in metric_map:
+        raise ValueError(f'Metric {metric} not found')
+    
     model.to(device)
     model.eval()
     
@@ -73,13 +86,14 @@ def calculate_distances(model: nn.Module, pairs: pd.DataFrame, batch_size=32, tr
             outputs1 = model.get_embedding(img1_batch)
             outputs2 = model.get_embedding(img2_batch)
             
-            batch_distances = torch.nn.functional.pairwise_distance(outputs1, outputs2, p=2)
+            batch_distances = metric_map[metric](outputs1, outputs2)
+            
             distances.extend(batch_distances.cpu().numpy())
 
     pairs['distance'] = distances
     return pairs
 
-def plot_distribution_and_ROC(pairs: pd.DataFrame, model_name: str, target_far=1e-3) -> tuple:
+def plot_distribution_and_ROC(pairs: pd.DataFrame, model_name: str, target_far=1e-3, metric='L2') -> tuple:
     col_name = 'distance'
     
     # Cria uma figura com dois subplots
@@ -88,7 +102,7 @@ def plot_distribution_and_ROC(pairs: pd.DataFrame, model_name: str, target_far=1
     # Gráfico de distribuição de distâncias
     pairs[pairs['label'] == 1][col_name].plot.kde(ax=ax[0])
     pairs[pairs['label'] == 0][col_name].plot.kde(ax=ax[0])
-    ax[0].set_title(f'Distances distribution ({model_name})')
+    ax[0].set_title(f'Distances distribution ({model_name}) - {metric}')
     ax[0].legend(['Positive', 'Negative'])
     
     # Cálculo da curva ROC e AUC
@@ -146,13 +160,15 @@ def eval_epoch(
     n_pairs: int = 1024, 
     batch_size: int = 32,
     device='cuda', 
-    target_far: float = 1e-3
+    target_far: float = 1e-3,
+    metric='L2',
+    random_state=42
 ) -> None:
     
-    pairs_df = get_pairs(val_df, n_pairs=n_pairs)
-    pairs_dist = calculate_distances(model, pairs_df, transform=transform, device=device, batch_size=batch_size)
+    pairs_df = get_pairs(val_df, n_pairs=n_pairs, random_state=random_state)
+    pairs_dist = calculate_distances(model, pairs_df, transform=transform, device=device, batch_size=batch_size, metric=metric)
     
-    _, low_far = plot_distribution_and_ROC(pairs_dist, model.__class__.__name__)
+    _, low_far = plot_distribution_and_ROC(pairs_dist, model.__class__.__name__, metric=metric)
     
     acc = accuracy(pairs_dist, low_far)
     val = VAL(pairs_dist, low_far)

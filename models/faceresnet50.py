@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from torchvision.models import resnet50
 
 class FaceResNet50(nn.Module):
-    def __init__(self, n_classes, emb_size=256):
+    def __init__(self, n_classes=0, emb_size=256):
         super(FaceResNet50, self).__init__()
         resnet = resnet50()
 
