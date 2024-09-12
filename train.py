@@ -104,8 +104,12 @@ def train(
                 'lr': optimizer.param_groups[0]['lr']
             })
 
-        print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
-        model.save_checkpoint(checkpoint_path, f'epoch_{epoch+1}.pt')
+        if LAST_EPOCH != -1:
+            print(f"Epoch [{epoch}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
+            model.save_checkpoint(checkpoint_path, f'epoch_{epoch}.pt')
+        else:
+            print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
+            model.save_checkpoint(checkpoint_path, f'epoch_{epoch}.pt')
         
         scheduler.step()
         
@@ -182,7 +186,7 @@ if __name__ == '__main__':
     
     if LAST_EPOCH != -1:
         print(f'Resuming from epoch {LAST_EPOCH}')
-        model.load_checkpoint(os.path.join(CHECKPOINT_PATH, f'epoch_{LAST_EPOCH}.pt'))
+        model = model.load_checkpoint(os.path.join(CHECKPOINT_PATH, f'epoch_{LAST_EPOCH}.pt'))
         
     if not colab:
         model = torch.compile(model)
