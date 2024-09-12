@@ -70,7 +70,6 @@ def train(
         else:
             progress_bar = tqdm(range(num_batches), desc=f"Epoch {epoch+1}/{epochs}", unit="batch")
             
-        
         for step, (inputs, labels) in enumerate(train_loader):
             inputs, labels = inputs.to(device, dtype=dtype), labels.to(device)
             
@@ -137,7 +136,7 @@ if __name__ == '__main__':
     accumulation_steps = accumulation // batch_size
     
     config = {
-        'model': 'FaceResNet50',
+        'model': model_name,
         'batch_size': batch_size,
         'accumulation': accumulation,
         'epochs': epochs,
@@ -199,8 +198,12 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam([
         {'params': model.parameters(), 'lr': 1e-3, 'weight_decay': 1e-5, 'initial_lr': max_lr}
     ])
-    scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_epochs, min_lr, max_lr, LAST_EPOCH-1)
     
+    if LAST_EPOCH != -1:
+        scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_epochs, min_lr, max_lr, LAST_EPOCH-1)
+    else:
+        scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_epochs, min_lr, max_lr, LAST_EPOCH)
+        
     # -----
     
     print(f'\nModel: {model.__class__.__name__}')

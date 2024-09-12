@@ -6,12 +6,14 @@ cmd="python3 train.py \
   --emb_size 512 \
   --min_lr 1e-6 \
   --max_lr 1e-3 \
-  --last_epoch 10 \
+  --last_epoch -1 \
   --warmup_epochs 4 \
   --num_workers 1 \
   --data_path ./data/ \
   --dataset CASIA \
-  --checkpoint_path checkpoints/
+  --checkpoint_path checkpoints/ \
+  --colab \
+  --wandb"
 
 echo $cmd
 $cmd
