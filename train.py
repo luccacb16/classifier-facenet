@@ -108,7 +108,7 @@ def train(
             model.save_checkpoint(checkpoint_path, f'epoch_{epoch}.pt')
         else:
             print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
-            model.save_checkpoint(checkpoint_path, f'epoch_{epoch}.pt')
+            model.save_checkpoint(checkpoint_path, f'epoch_{epoch+1}.pt')
         
         scheduler.step()
         
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     test_df['path'] = test_df['path'].apply(lambda x: os.path.join(DATA_PATH, dataset, dataset_map[dataset], x))
     
     # Selecionando um número fixo de amostras para validação
-    test_df = test_df.sample(n=NUM_VAL_SAMPLES).reset_index(drop=True)
+    test_df = test_df.sample(n=NUM_VAL_SAMPLES, random_state=42).reset_index(drop=True)
     
     # Datasets e Loaders
     train_dataset = CustomDataset(train_df, transform=aug_transform, dtype=DTYPE)

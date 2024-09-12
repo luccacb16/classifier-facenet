@@ -116,5 +116,6 @@ def parse_args():
     parser.add_argument('--checkpoint_path', type=str, default='./checkpoints/', help='Caminho para salvar os checkpoints (default: ./checkpoints/)')
     parser.add_argument('--colab', action='store_true', help='Se está rodando no Google Colab (default: False)')
     parser.add_argument('--wandb', action='store_true', help='Se está rodando com o Weights & Biases (default: False)')
+    parser.add_argument('--random_state', type=int, default=42, help='Seed para o random (default: 42)')
     
     return parser.parse_args()

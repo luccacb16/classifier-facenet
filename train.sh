@@ -13,7 +13,7 @@ cmd="python3 train.py \
   --dataset CASIA \
   --checkpoint_path checkpoints/ \
   --colab \
-  --wandb"
+  --random_state 42"
 
 echo $cmd
 $cmd

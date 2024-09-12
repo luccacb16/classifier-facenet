@@ -55,6 +55,7 @@ class FaceResNet50(nn.Module):
     def get_embedding(self, x):
         x = self.features(x)
         x = torch.flatten(x, 1)
+        x = self.fc1(x)
         x = self.bn1(x)
         return x
     
