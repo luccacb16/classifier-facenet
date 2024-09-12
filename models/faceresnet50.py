@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from torchvision.models import resnet50
+import warnings
 
 class FaceResNet50(nn.Module):
     def __init__(self, n_classes=0, emb_size=256):
@@ -70,9 +71,12 @@ class FaceResNet50(nn.Module):
         }
         torch.save(checkpoint, os.path.join(path, filename))
         
-    @staticmethod
     def load_checkpoint(path):
-        checkpoint = torch.load(path)
+        # Suprimindo o FutureWarning específico para torch.load
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=FutureWarning)
+            checkpoint = torch.load(path)
+    
         model = FaceResNet50(n_classes=checkpoint['n_classes'], emb_size=checkpoint['emb_size'])
         model.load_state_dict(checkpoint['state_dict'])
         return model

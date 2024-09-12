@@ -186,7 +186,7 @@ if __name__ == '__main__':
     
     if LAST_EPOCH != -1:
         print(f'Resuming from epoch {LAST_EPOCH}')
-        model = model.load_checkpoint(os.path.join(CHECKPOINT_PATH, f'epoch_{LAST_EPOCH}.pt'))
+        model = model_map[model_name.lower()].load_checkpoint(os.path.join(CHECKPOINT_PATH, f'epoch_{LAST_EPOCH}.pt'))
         
     if not colab:
         model = torch.compile(model)
