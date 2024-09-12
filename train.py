@@ -185,8 +185,8 @@ if __name__ == '__main__':
         raise ValueError(f'Model {model_name} not found')
     
     if LAST_EPOCH != -1:
-        print(f'Resuming from epoch {LAST_EPOCH}')
-        model = model_map[model_name.lower()].load_checkpoint(os.path.join(CHECKPOINT_PATH, f'epoch_{LAST_EPOCH}.pt'))
+        print(f'\nResuming from epoch {LAST_EPOCH}')
+        model = model_map[model_name.lower()].load_checkpoint(os.path.join(CHECKPOINT_PATH, f'epoch_{LAST_EPOCH}.pt')).to(device).type(DTYPE)
         
     if not colab:
         model = torch.compile(model)
