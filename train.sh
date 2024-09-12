@@ -1,16 +1,17 @@
 cmd="python3 train.py \
   --model FaceResNet50 \
-  --batch_size 256 \
-  --accumulation 1024 \
-  --epochs 30 \
+  --batch_size 64 \
+  --accumulation 512 \
+  --epochs 40 \
   --emb_size 512 \
-  --min_lr 1e-5 \
-  --max_lr 3e-4 \
+  --min_lr 1e-6 \
+  --max_lr 1e-3 \
+  --last_epoch 10 \
+  --warmup_epochs 4 \
   --num_workers 1 \
   --data_path ./data/ \
   --dataset CASIA \
-  --checkpoint_path ./checkpoints/ \
-  --colab False"
+  --checkpoint_path checkpoints/
 
 echo $cmd
 $cmd

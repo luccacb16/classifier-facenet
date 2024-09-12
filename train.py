@@ -132,7 +132,7 @@ if __name__ == '__main__':
     dataset = args.dataset.upper()
     CHECKPOINT_PATH = args.checkpoint_path
     colab = args.colab
-    USING_WANDB = args.wandb    
+    USING_WANDB = args.wandb
     
     accumulation_steps = accumulation // batch_size
     
@@ -185,8 +185,8 @@ if __name__ == '__main__':
         raise ValueError(f'Model {model_name} not found')
     
     if LAST_EPOCH != -1:
-        print(f'\nResuming from epoch {LAST_EPOCH}')
-        model = model_map[model_name.lower()].load_checkpoint(os.path.join(CHECKPOINT_PATH, f'epoch_{LAST_EPOCH}.pt')).to(device).type(DTYPE)
+        print(f'\nResuming from epoch {LAST_EPOCH+1}')
+        model = model_map[model_name.lower()].load_checkpoint(os.path.join(CHECKPOINT_PATH, f'epoch_{LAST_EPOCH}.pt')).to(device)
         
     if not colab:
         model = torch.compile(model)
