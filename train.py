@@ -189,9 +189,6 @@ if __name__ == '__main__':
     if compile:
         model = torch.compile(model)
     
-    if USING_WANDB:
-        wandb.watch(model, log='all', log_freq=accumulation_steps)
-    
     # Scaler, Otimizador e Scheduler
     scaler = GradScaler()
     optimizer = torch.optim.AdamW([
