@@ -157,11 +157,11 @@ if __name__ == '__main__':
     
     # Dados
     train_df = pd.read_csv(os.path.join(DATA_PATH, 'train.csv'))
-    train_df['path'] = train_df['path'].apply(lambda x: os.path.join(DATA_PATH, x))
+    train_df['path'] = train_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'casia-faces/', x))
     n_classes = train_df['id'].nunique()
     
     test_df = pd.read_csv(os.path.join(DATA_PATH, 'test.csv'))
-    test_df['path'] = test_df['path'].apply(lambda x: os.path.join(DATA_PATH, x))
+    test_df['path'] = test_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'casia-faces/', x))
     
     # Selecionando um número fixo de amostras para validação
     test_df = test_df.sample(n=NUM_VAL_SAMPLES, random_state=42).reset_index(drop=True)
