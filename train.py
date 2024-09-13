@@ -105,11 +105,11 @@ def train(
         if LAST_EPOCH != -1:
             print(f"Epoch [{epoch}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
             model.save_checkpoint(checkpoint_path, f'epoch_{epoch}.pt')
-            if USING_WANDB: save_model_artifact(model, checkpoint_path, epoch)
+            if USING_WANDB: save_model_artifact(checkpoint_path, epoch)
         else:
             print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
             model.save_checkpoint(checkpoint_path, f'epoch_{epoch+1}.pt')
-            if USING_WANDB: save_model_artifact(model, checkpoint_path, epoch+1)
+            if USING_WANDB: save_model_artifact(checkpoint_path, epoch+1)
             
         scheduler.step()
         
