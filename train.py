@@ -13,7 +13,7 @@ import wandb.wandb_torch
 from models.faceresnet50 import FaceResNet50
 from models.faceresnet18 import FaceResNet18
 
-from utils import parse_args, transform, aug_transform, CustomDataset, evaluate, WarmUpCosineAnnealingLR
+from utils import parse_args, transform, aug_transform, CustomDataset, evaluate, WarmUpCosineAnnealingLR, save_model_artifact
 
 torch.set_float32_matmul_precision('high')
 torch.backends.cudnn.benchmark = True
@@ -102,14 +102,16 @@ def train(
                 'accuracy': epoch_accuracy,
                 'lr': optimizer.param_groups[0]['lr']
             })
-
+            
         if LAST_EPOCH != -1:
             print(f"Epoch [{epoch}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
             model.save_checkpoint(checkpoint_path, f'epoch_{epoch}.pt')
+            if USING_WANDB: save_model_artifact(model, checkpoint_path, epoch)
         else:
             print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
             model.save_checkpoint(checkpoint_path, f'epoch_{epoch+1}.pt')
-        
+            if USING_WANDB: save_model_artifact(model, checkpoint_path, epoch+1)
+            
         scheduler.step()
         
 # --------------------------------------------------------------------------------------------------------
@@ -129,7 +131,7 @@ if __name__ == '__main__':
     num_workers = args.num_workers
     DATA_PATH = args.data_path
     CHECKPOINT_PATH = args.checkpoint_path
-    colab = args.colab
+    compile = args.compile
     USING_WANDB = args.wandb
     
     accumulation_steps = accumulation // batch_size
@@ -142,15 +144,15 @@ if __name__ == '__main__':
         'num_workers': num_workers,
         'data_path': DATA_PATH,
         'checkpoint_path': CHECKPOINT_PATH,
-        'colab': colab,
+        'compile': compile,
         'min_lr': min_lr,
         'max_lr': max_lr,
         'warmup_epochs': warmup_epochs,
     }
 
     if USING_WANDB:
-        load_dotenv()
-        wandb.login(key=os.environ['WANDB_API_KEY'])
+        #load_dotenv()
+        #wandb.login(key=os.environ['WANDB_API_KEY'])
         wandb.init(project='classifier-facenet', config=config)
 
     # ------
@@ -186,7 +188,7 @@ if __name__ == '__main__':
         print(f'\nResuming from epoch {LAST_EPOCH+1}')
         model = model_map[model_name.lower()].load_checkpoint(os.path.join(CHECKPOINT_PATH, f'epoch_{LAST_EPOCH}.pt')).to(device)
         
-    if not colab:
+    if compile:
         model = torch.compile(model)
     
     if USING_WANDB:
@@ -194,8 +196,8 @@ if __name__ == '__main__':
     
     # Scaler, Otimizador e Scheduler
     scaler = GradScaler()
-    optimizer = torch.optim.Adam([
-        {'params': model.parameters(), 'lr': 1e-3, 'weight_decay': 1e-5, 'initial_lr': max_lr}
+    optimizer = torch.optim.AdamW([
+        {'params': model.parameters(), 'lr': max_lr, 'weight_decay': 1e-5, 'initial_lr': max_lr}
     ])
     
     if LAST_EPOCH != -1:

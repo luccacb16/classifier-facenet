@@ -11,7 +11,6 @@ cmd="python3 train.py \
   --num_workers 1 \
   --data_path ./data/ \
   --checkpoint_path checkpoints/ \
-  --colab \
   --random_state 42"
 
 echo $cmd
