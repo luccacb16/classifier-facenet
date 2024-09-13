@@ -168,7 +168,7 @@ def eval_epoch(
     pairs_df = get_pairs(val_df, n_pairs=n_pairs, random_state=random_state)
     pairs_dist = calculate_distances(model, pairs_df, transform=transform, device=device, batch_size=batch_size, metric=metric)
     
-    _, low_far = plot_distribution_and_ROC(pairs_dist, model.__class__.__name__, metric=metric)
+    _, low_far = plot_distribution_and_ROC(pairs_dist, model.__class__.__name__, metric=metric, target_far=target_far)
     
     acc = accuracy(pairs_dist, low_far)
     val = VAL(pairs_dist, low_far)

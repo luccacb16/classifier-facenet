@@ -133,6 +133,9 @@ if __name__ == '__main__':
     colab = args.colab
     USING_WANDB = args.wandb
     
+    if dataset == 'NONE':
+        dataset = ''
+    
     accumulation_steps = accumulation // batch_size
     
     config = {
