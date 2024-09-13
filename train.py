@@ -2,7 +2,6 @@ import pandas as pd
 from tqdm import tqdm
 import os
 import wandb
-from dotenv import load_dotenv
 
 import torch
 import torch.nn as nn
@@ -151,8 +150,7 @@ if __name__ == '__main__':
     }
 
     if USING_WANDB:
-        #load_dotenv()
-        #wandb.login(key=os.environ['WANDB_API_KEY'])
+        wandb.login(key=os.environ['WANDB_API_KEY'])
         wandb.init(project='classifier-facenet', config=config)
 
     # ------
