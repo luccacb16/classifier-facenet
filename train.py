@@ -128,7 +128,6 @@ if __name__ == '__main__':
     warmup_epochs = args.warmup_epochs
     num_workers = args.num_workers
     DATA_PATH = args.data_path
-    dataset = args.dataset.upper()
     CHECKPOINT_PATH = args.checkpoint_path
     colab = args.colab
     USING_WANDB = args.wandb
@@ -157,12 +156,12 @@ if __name__ == '__main__':
     # ------
     
     # Dados
-    train_df = pd.read_csv(os.path.join(DATA_PATH, dataset, 'train.csv'))
-    train_df['path'] = train_df['path'].apply(lambda x: os.path.join(DATA_PATH, dataset, dataset_map[dataset], x))
+    train_df = pd.read_csv(os.path.join(DATA_PATH, 'train.csv'))
+    train_df['path'] = train_df['path'].apply(lambda x: os.path.join(DATA_PATH, x))
     n_classes = train_df['id'].nunique()
     
-    test_df = pd.read_csv(os.path.join(DATA_PATH, dataset, 'test.csv'))
-    test_df['path'] = test_df['path'].apply(lambda x: os.path.join(DATA_PATH, dataset, dataset_map[dataset], x))
+    test_df = pd.read_csv(os.path.join(DATA_PATH, 'test.csv'))
+    test_df['path'] = test_df['path'].apply(lambda x: os.path.join(DATA_PATH, x))
     
     # Selecionando um número fixo de amostras para validação
     test_df = test_df.sample(n=NUM_VAL_SAMPLES, random_state=42).reset_index(drop=True)

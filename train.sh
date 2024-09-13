@@ -10,7 +10,6 @@ cmd="python3 train.py \
   --warmup_epochs 4 \
   --num_workers 1 \
   --data_path ./data/ \
-  --dataset CASIA \
   --checkpoint_path checkpoints/ \
   --colab \
   --random_state 42"
