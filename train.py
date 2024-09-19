@@ -11,6 +11,7 @@ import wandb.wandb_torch
 
 from models.faceresnet50 import FaceResNet50
 from models.faceresnet18 import FaceResNet18
+from models.arcfaceresnet50 import ArcFaceResNet50
 
 from utils import parse_args, transform, aug_transform, CustomDataset, evaluate, WarmUpCosineAnnealingLR, save_model_artifact
 
@@ -28,11 +29,11 @@ if torch.cuda.is_available():
         
 NUM_VAL_SAMPLES = 128
 USING_WANDB = False
-LAST_EPOCH = -1
 
 model_map = {
     'faceresnet50': FaceResNet50,
-    'faceresnet18': FaceResNet18
+    'faceresnet18': FaceResNet18,
+    'arcface': ArcFaceResNet50
 }
 
 dataset_map = {
@@ -57,17 +58,13 @@ def train(
     checkpoint_path: str
 ):
     
-    start_epoch = LAST_EPOCH + 1
-    for epoch in range(start_epoch, epochs):
+    for epoch in range(epochs):
         model.train()
         running_loss = 0.0
         optimizer.zero_grad()
         
         num_batches = len(train_loader) // accumulation_steps
-        if LAST_EPOCH != -1:
-            progress_bar = tqdm(range(num_batches), desc=f"Epoch {epoch}/{epochs}", unit="batch")
-        else:
-            progress_bar = tqdm(range(num_batches), desc=f"Epoch {epoch+1}/{epochs}", unit="batch")
+        progress_bar = tqdm(range(num_batches), desc=f"Epoch {epoch+1}/{epochs}", unit="batch")
             
         for step, (inputs, labels) in enumerate(train_loader):
             inputs, labels = inputs.to(device, dtype=dtype), labels.to(device)
@@ -102,14 +99,10 @@ def train(
                 'lr': optimizer.param_groups[0]['lr']
             })
             
-        if LAST_EPOCH != -1:
-            print(f"Epoch [{epoch}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
-            model.save_checkpoint(checkpoint_path, f'epoch_{epoch}.pt')
-            if USING_WANDB: save_model_artifact(checkpoint_path, epoch)
-        else:
-            print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
-            model.save_checkpoint(checkpoint_path, f'epoch_{epoch+1}.pt')
-            if USING_WANDB: save_model_artifact(checkpoint_path, epoch+1)
+        print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
+        model.save_checkpoint(checkpoint_path, f'epoch_{epoch+1}.pt')
+        if USING_WANDB: 
+            save_model_artifact(checkpoint_path, epoch+1)
             
         scheduler.step()
         
@@ -125,13 +118,13 @@ if __name__ == '__main__':
     emb_size = args.emb_size
     min_lr = args.min_lr
     max_lr = args.max_lr
-    LAST_EPOCH = args.last_epoch
     warmup_epochs = args.warmup_epochs
     num_workers = args.num_workers
     DATA_PATH = args.data_path
     CHECKPOINT_PATH = args.checkpoint_path
     compile = args.compile
     USING_WANDB = args.wandb
+    random_state = args.random_state
     
     accumulation_steps = accumulation // batch_size
     
@@ -164,7 +157,7 @@ if __name__ == '__main__':
     test_df['path'] = test_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'casia-faces/', x))
     
     # Selecionando um número fixo de amostras para validação
-    test_df = test_df.sample(n=NUM_VAL_SAMPLES, random_state=42).reset_index(drop=True)
+    test_df = test_df.sample(n=NUM_VAL_SAMPLES, random_state=random_state).reset_index(drop=True)
     
     # Datasets e Loaders
     train_dataset = CustomDataset(train_df, transform=aug_transform, dtype=DTYPE)
@@ -182,23 +175,16 @@ if __name__ == '__main__':
     else:
         raise ValueError(f'Model {model_name} not found')
     
-    if LAST_EPOCH != -1:
-        print(f'\nResuming from epoch {LAST_EPOCH+1}')
-        model = model_map[model_name.lower()].load_checkpoint(os.path.join(CHECKPOINT_PATH, f'epoch_{LAST_EPOCH}.pt')).to(device)
-        
     if compile:
         model = torch.compile(model)
     
     # Scaler, Otimizador e Scheduler
     scaler = GradScaler()
     optimizer = torch.optim.AdamW([
-        {'params': model.parameters(), 'lr': max_lr, 'weight_decay': 1e-5, 'initial_lr': max_lr}
+        {'params': model.parameters(), 'lr': max_lr, 'weight_decay': 5e-4, 'initial_lr': max_lr}
     ])
     
-    if LAST_EPOCH != -1:
-        scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_epochs, min_lr, max_lr, LAST_EPOCH-1)
-    else:
-        scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_epochs, min_lr, max_lr, LAST_EPOCH)
+    scheduler = WarmUpCosineAnnealingLR(optimizer, epochs, warmup_epochs, min_lr, max_lr, last_epoch=-1)
         
     # -----
     
