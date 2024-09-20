@@ -4,6 +4,8 @@ import math
 import wandb
 import os
 
+from sklearn.metrics import precision_recall_fscore_support
+
 import torch
 import torch.nn as nn
 from torchvision.transforms import Compose, ToTensor, Normalize, Resize, RandomResizedCrop, RandomHorizontalFlip, RandomRotation, ColorJitter
@@ -58,6 +60,9 @@ def evaluate(model, val_dataloader, criterion, dtype=torch.bfloat16, device='cud
     total = 0
     total_loss = 0.0
     
+    all_predictions = []
+    all_labels = []
+    
     model.eval()
 
     with autocast(dtype=dtype, device_type=device):
@@ -66,7 +71,7 @@ def evaluate(model, val_dataloader, criterion, dtype=torch.bfloat16, device='cud
                 inputs, labels = data
                 inputs, labels = inputs.to(device=device, dtype=dtype), labels.to(device=device)
 
-                outputs = model(inputs)
+                outputs = model(inputs, labels)
                 loss = criterion(outputs, labels)
 
                 total_loss += loss.item()
@@ -74,13 +79,18 @@ def evaluate(model, val_dataloader, criterion, dtype=torch.bfloat16, device='cud
 
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
+                
+                all_predictions.extend(predicted.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
 
     model.train()
     
     accuracy = correct / total
     loss = total_loss / len(val_dataloader)
-
-    return accuracy, loss
+    
+    precision, recall, f1, _ = precision_recall_fscore_support(all_labels, all_predictions, average='macro')
+    
+    return accuracy, precision, recall, f1, loss
 
 class WarmUpCosineAnnealingLR(_LRScheduler):
     def __init__(self, optimizer, epochs, warmup_epochs, min_lr, max_lr, last_epoch=-1):

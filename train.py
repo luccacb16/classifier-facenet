@@ -86,7 +86,7 @@ def train(
             inputs, labels = inputs.to(device, dtype=dtype), labels.to(device)
             
             with autocast(dtype=dtype, device_type='cuda' if torch.cuda.is_available() else 'cpu'):
-                outputs = model(inputs)
+                outputs = model(inputs, labels)
                 loss = criterion(outputs, labels)
                 loss = loss / accumulation_steps
 
@@ -111,7 +111,7 @@ def train(
             epoch_loss /= world_size
         
         if rank == 0:
-            epoch_accuracy, val_loss = evaluate(model.module if world_size > 1 else model, val_loader, criterion, dtype=dtype, device=device)
+            epoch_accuracy, epoch_precision, epoch_recall, epoch_f1, val_loss = evaluate(model.module if world_size > 1 else model, val_loader, criterion, dtype=dtype, device=device)
             
             if USING_WANDB:
                 wandb.log({
@@ -119,10 +119,14 @@ def train(
                     'train_loss': epoch_loss,
                     'val_loss': val_loss,
                     'accuracy': epoch_accuracy,
+                    'precision': epoch_precision,
+                    'recall': epoch_recall,
+                    'f1': epoch_f1,
                     'lr': optimizer.param_groups[0]['lr']
                 })
                 
-            print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
+            print(f"Epoch [{epoch+1}/{epochs}] | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
+            print(f"Metrics: accuracy: {epoch_accuracy:.4f} | precision: {epoch_precision:.4f} | recall: {epoch_recall:.4f} | f1: {epoch_f1:.4f}\n")
             torch.save(model.module.state_dict() if world_size > 1 else model.state_dict(), os.path.join(checkpoint_path, f'epoch_{epoch+1}.pt'))
             if USING_WANDB: 
                 save_model_artifact(checkpoint_path, epoch+1)
@@ -170,12 +174,12 @@ def main(rank, world_size, args):
             wandb.init(project='classifier-facenet', config=config)
 
     # Data
-    train_df = pd.read_csv(os.path.join(DATA_PATH, 'train.csv'))
-    train_df['path'] = train_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'casia-faces/', x))
+    train_df = pd.read_csv(os.path.join(DATA_PATH, 'CASIA/train.csv'))
+    train_df['path'] = train_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'CASIA/casia-faces/', x))
     n_classes = train_df['id'].nunique()
     
-    test_df = pd.read_csv(os.path.join(DATA_PATH, 'test.csv'))
-    test_df['path'] = test_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'casia-faces/', x))
+    test_df = pd.read_csv(os.path.join(DATA_PATH, 'CASIA/test.csv'))
+    test_df['path'] = test_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'CASIA/casia-faces/', x))
     
     # Selecting a fixed number of samples for validation
     test_df = test_df.sample(n=NUM_VAL_SAMPLES, random_state=random_state).reset_index(drop=True)
