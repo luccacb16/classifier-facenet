@@ -70,7 +70,7 @@ def train(
             inputs, labels = inputs.to(device, dtype=dtype), labels.to(device)
             
             with autocast(dtype=dtype, device_type=device):
-                outputs = model(inputs)
+                outputs = model(inputs, labels)
                 loss = criterion(outputs, labels)
                 loss = loss / accumulation_steps
 
@@ -88,7 +88,7 @@ def train(
         progress_bar.close()
         
         epoch_loss = running_loss / len(train_loader)
-        epoch_accuracy, val_loss = evaluate(model, val_loader, criterion, dtype=dtype, device=device)
+        epoch_accuracy, epoch_precision, epoch_recall, epoch_f1, val_loss = evaluate(model, val_loader, criterion, dtype=dtype, device=device)
         
         if USING_WANDB:
             wandb.log({
@@ -96,10 +96,14 @@ def train(
                 'train_loss': epoch_loss,
                 'val_loss': val_loss,
                 'accuracy': epoch_accuracy,
+                'precision': epoch_precision,
+                'recall': epoch_recall,
+                'f1': epoch_f1,
                 'lr': optimizer.param_groups[0]['lr']
             })
             
-        print(f"Epoch [{epoch+1}/{epochs}] | accuracy: {epoch_accuracy:.4f} | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
+        print(f"Epoch [{epoch+1}/{epochs}] | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
+        print(f"Metrics: accuracy: {epoch_accuracy:.4f} | precision: {epoch_precision:.4f} | recall: {epoch_recall:.4f} | f1: {epoch_f1:.4f}\n")
         model.save_checkpoint(checkpoint_path, f'epoch_{epoch+1}.pt')
         if USING_WANDB: 
             save_model_artifact(checkpoint_path, epoch+1)
@@ -144,7 +148,7 @@ if __name__ == '__main__':
 
     if USING_WANDB:
         wandb.login(key=os.environ['WANDB_API_KEY'])
-        wandb.init(project='classifier-facenet', config=config)
+        wandb.init(project='arcface', config=config)
 
     # ------
     

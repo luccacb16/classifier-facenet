@@ -16,12 +16,17 @@ class ArcMarginProduct(nn.Module):
         nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input, label):
+        m = torch.tensor(self.m, device=input.device, dtype=input.dtype)
+
         cosine = F.linear(F.normalize(input), F.normalize(self.weight))
         sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
-        phi = cosine * torch.cos(self.m) - sine * torch.sin(self.m)
+        
+        phi = cosine * torch.cos(m) - sine * torch.sin(m)
         phi = torch.where(cosine > 0, phi, cosine)
+        
         one_hot = torch.zeros(cosine.size(), device=input.device)
         one_hot.scatter_(1, label.view(-1, 1).long(), 1)
+        
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
         output *= self.s
         return output
