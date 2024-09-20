@@ -174,12 +174,12 @@ def main(rank, world_size, args):
             wandb.init(project='classifier-facenet', config=config)
 
     # Data
-    train_df = pd.read_csv(os.path.join(DATA_PATH, 'CASIA/train.csv'))
-    train_df['path'] = train_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'CASIA/casia-faces/', x))
+    train_df = pd.read_csv(os.path.join(DATA_PATH, 'train.csv'))
+    train_df['path'] = train_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'casia-faces/', x))
     n_classes = train_df['id'].nunique()
     
-    test_df = pd.read_csv(os.path.join(DATA_PATH, 'CASIA/test.csv'))
-    test_df['path'] = test_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'CASIA/casia-faces/', x))
+    test_df = pd.read_csv(os.path.join(DATA_PATH, 'test.csv'))
+    test_df['path'] = test_df['path'].apply(lambda x: os.path.join(DATA_PATH, 'casia-faces/', x))
     
     # Selecting a fixed number of samples for validation
     test_df = test_df.sample(n=NUM_VAL_SAMPLES, random_state=random_state).reset_index(drop=True)
