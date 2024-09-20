@@ -88,7 +88,7 @@ def evaluate(model, val_dataloader, criterion, dtype=torch.bfloat16, device='cud
     accuracy = correct / total
     loss = total_loss / len(val_dataloader)
     
-    precision, recall, f1, _ = precision_recall_fscore_support(all_labels, all_preds, average='macro')
+    precision, recall, f1, _ = precision_recall_fscore_support(all_labels, all_preds, average='macro', zero_division=0)
 
     return accuracy, precision, recall, f1, loss
 
