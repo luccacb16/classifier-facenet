@@ -122,8 +122,6 @@ if __name__ == '__main__':
     # Seed para reproducibilidade
     set_seed(random_state)
     
-    os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-    
     accumulation_steps = accumulation // batch_size
     
     config = {

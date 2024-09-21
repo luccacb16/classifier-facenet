@@ -8,23 +8,23 @@ import numpy as np
 from sklearn.metrics import precision_recall_fscore_support
 
 import torch
-from torchvision.transforms import Compose, ToTensor, Normalize, Resize, RandomResizedCrop, RandomHorizontalFlip, RandomRotation, ColorJitter
+from torchvision.transforms import Compose, ToTensor, Normalize, Resize, RandomCrop, RandomHorizontalFlip, RandomRotation, ColorJitter
 from torch.utils.data import Dataset
 from torch.amp import autocast
 
 transform = Compose([
-    Resize((160, 160)),
-    ToTensor(), 
-    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])    
+    Resize([128]),
+    RandomCrop([112, 112]),
+    ToTensor(),
+    Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
 
 aug_transform = Compose([
-    RandomResizedCrop(160, scale=(0.8, 1.0)),
+    Resize([128]),
+    RandomCrop([112, 112]),
     RandomHorizontalFlip(),
-    RandomRotation(15),
-    ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
     ToTensor(),
-    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
 
 # --------------------------------------------------------------------------------------------------------
