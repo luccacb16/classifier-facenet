@@ -6,7 +6,7 @@ from torchvision.models import resnet50
 import warnings
 
 class ArcMarginProduct(nn.Module):
-    def __init__(self, in_features, out_features, s=30.0, m=0.50):
+    def __init__(self, in_features, out_features, s=64.0, m=0.50):
         super(ArcMarginProduct, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
@@ -24,7 +24,7 @@ class ArcMarginProduct(nn.Module):
         phi = cosine * torch.cos(m) - sine * torch.sin(m)
         phi = torch.where(cosine > 0, phi, cosine)
         
-        one_hot = torch.zeros(cosine.size(), device=input.device)
+        one_hot = torch.zeros(cosine.size(0), self.out_features, device=input.device)
         one_hot.scatter_(1, label.view(-1, 1).long(), 1)
         
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
@@ -32,7 +32,7 @@ class ArcMarginProduct(nn.Module):
         return output
 
 class ArcFaceResNet50(nn.Module):
-    def __init__(self, n_classes=0, emb_size=256, s=64, m=0.5):
+    def __init__(self, n_classes=0, emb_size=512, s=64.0, m=0.5):
         super(ArcFaceResNet50, self).__init__()
         resnet = resnet50()
 
@@ -49,6 +49,8 @@ class ArcFaceResNet50(nn.Module):
         
         self.emb_size = emb_size
         self.n_classes = n_classes
+        
+        self.num_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     def forward(self, x, labels=None):
         x = self.get_embedding(x)

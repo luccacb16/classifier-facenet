@@ -1,17 +1,16 @@
 import argparse
 from PIL import Image
-import math
 import wandb
 import os
+import random
+import numpy as np
 
 from sklearn.metrics import precision_recall_fscore_support
 
 import torch
-import torch.nn as nn
 from torchvision.transforms import Compose, ToTensor, Normalize, Resize, RandomResizedCrop, RandomHorizontalFlip, RandomRotation, ColorJitter
 from torch.utils.data import Dataset
 from torch.amp import autocast
-from torch.optim.lr_scheduler import _LRScheduler
 
 transform = Compose([
     Resize((160, 160)),
@@ -92,45 +91,48 @@ def evaluate(model, val_dataloader, criterion, dtype=torch.bfloat16, device='cud
 
     return accuracy, precision, recall, f1, loss
 
-class WarmUpCosineAnnealingLR(_LRScheduler):
-    def __init__(self, optimizer, epochs, warmup_epochs, min_lr, max_lr, last_epoch=-1):
-        self.epochs = epochs
-        self.min_lr = min_lr
-        self.max_lr = max_lr
-        self.warmup_epochs = warmup_epochs
-        super(WarmUpCosineAnnealingLR, self).__init__(optimizer, last_epoch)
-
+class ArcFaceLRScheduler(torch.optim.lr_scheduler._LRScheduler):
+    def __init__(self, optimizer, reduction_epochs=None, reduction_factor=0.1, last_epoch=-1):
+        self.reduction_epochs = reduction_epochs if reduction_epochs is not None else [20, 28]
+        self.reduction_factor = reduction_factor
+        super(ArcFaceLRScheduler, self).__init__(optimizer, last_epoch)
+    
     def get_lr(self):
-        if self.last_epoch < self.warmup_epochs:
-            alpha = self.last_epoch / self.warmup_epochs
-            return [self.min_lr + (self.max_lr - self.min_lr) * alpha for _ in self.base_lrs]
-        else:
-            progress = (self.last_epoch - self.warmup_epochs) / (self.epochs - self.warmup_epochs)
-            cosine_decay = 0.5 * (1 + math.cos(math.pi * progress))
-            return [self.min_lr + (self.max_lr - self.min_lr) * cosine_decay for _ in self.base_lrs]
+        if self.last_epoch in self.reduction_epochs:
+            return [base_lr * self.reduction_factor for base_lr in self.base_lrs]
+        return [base_lr for base_lr in self.base_lrs]
     
 def save_model_artifact(checkpoint_path, epoch):
     artifact = wandb.Artifact(f'epoch_{epoch}', type='model')
     artifact.add_file(os.path.join(checkpoint_path, f'epoch_{epoch}.pt'))
     wandb.log_artifact(artifact)
+    
+def set_seed(seed_value=42):
+    random.seed(seed_value)
+    np.random.seed(seed_value)
+    torch.manual_seed(seed_value)
+    torch.cuda.manual_seed(seed_value)
 
 # --------------------------------------------------------------------------------------------------------
     
 def parse_args():
     parser = argparse.ArgumentParser(description="Treinar a rede neural como classificador")
-    parser.add_argument('--model', type=str, default='faceresnet50', help='Modelo a ser utilizado (default: faceresnet50)')
     parser.add_argument('--batch_size', type=int, default=128, help='Tamanho do batch (default: 128)')
-    parser.add_argument('--accumulation', type=int, default=1024, help='Acumulação de gradientes (default: 1024)')
-    parser.add_argument('--epochs', type=int, default=30, help='Número de epochs (default: 30)')
-    parser.add_argument('--emb_size', type=int, default=256, help='Tamanho do embedding (default: 256)')
-    parser.add_argument('--min_lr', type=float, default=1e-5, help='Taxa de aprendizado mínima (default: 1e-5)')
-    parser.add_argument('--max_lr', type=float, default=1e-3, help='Taxa de aprendizado máxima (default: 1e-3)')
-    parser.add_argument('--warmup_epochs', type=int, default=5, help='Número de epochs para warmup (default: 5)')
+    parser.add_argument('--accumulation', type=int, default=512, help='Acumulação de gradientes (default: 512)')
+    parser.add_argument('--epochs', type=int, default=32, help='Número de epochs (default: 32)')
+    parser.add_argument('--emb_size', type=int, default=512, help='Tamanho do embedding (default: 512)')
     parser.add_argument('--num_workers', type=int, default=1, help='Número de workers para o DataLoader (default: 1)')
-    parser.add_argument('--data_path', type=str, default='./data/', help='Caminho para o dataset (default: ./data/)')
+    parser.add_argument('--train_df', type=str, default='./data/CASIA/train.csv', help='Caminho para o CSV de treino (default: ./data/CASIA/train.csv)')
+    parser.add_argument('--test_df', type=str, default='./data/CASIA/test.csv', help='Caminho para o CSV de teste (default: ./data/CASIA/test.csv)')
+    parser.add_argument('--images_path', type=str, default='./data/', help='Caminho para as imagens do dataset (default: ./data/CASIA/casia-faces/)')
     parser.add_argument('--checkpoint_path', type=str, default='./checkpoints/', help='Caminho para salvar os checkpoints (default: ./checkpoints/)')
     parser.add_argument('--compile', action='store_true', help='Se deve compilar o modelo (default: False)')
     parser.add_argument('--wandb', action='store_true', help='Se está rodando com o Weights & Biases (default: False)')
     parser.add_argument('--random_state', type=int, default=42, help='Seed para o random (default: 42)')
-    
+    parser.add_argument('--lr', type=float, default=1e-1, help='Taxa de aprendizado inicial (default: 1e-1)')
+    parser.add_argument('--s', type=float, default=64.0, help="Fator de escala dos embeddings (default: 64)")
+    parser.add_argument('--m', type=float, default=0.5, help="Margem dos embeddings (default: 0.5)")
+    parser.add_argument('--reduction_factor', type=float, default=0.1, help="Fator de redução da taxa de aprendizado (default: 0.1)")
+    parser.add_argument('--reduction_epochs', nargs='+', type=int, default=[20, 28], help="Epochs para redução da taxa de aprendizado (default: [20, 28])")
+        
     return parser.parse_args()
