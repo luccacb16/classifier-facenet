@@ -154,5 +154,6 @@ def parse_args():
     parser.add_argument('--m', type=float, default=0.5, help="Margem dos embeddings (default: 0.5)")
     parser.add_argument('--reduction_factor', type=float, default=0.1, help="Fator de redução da taxa de aprendizado (default: 0.1)")
     parser.add_argument('--reduction_epochs', nargs='+', type=int, default=[20, 28], help="Epochs para redução da taxa de aprendizado (default: [20, 28])")
+    parser.add_argument('--warmup_epochs', type=int, default=5, help="Epochs para warmup da taxa de aprendizado (default: 5)")
         
     return parser.parse_args()

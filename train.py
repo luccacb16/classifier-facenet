@@ -47,6 +47,7 @@ def train(
     for epoch in range(epochs):
         model.train()
         running_loss = 0.0
+        epoch_norm = 0.0
         optimizer.zero_grad()
         
         num_batches = len(train_loader) // accumulation_steps
@@ -64,7 +65,7 @@ def train(
             
             if (step + 1) % accumulation_steps == 0:
                 scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                epoch_norm += torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 
                 scaler.step(optimizer)
                 scaler.update()
@@ -77,6 +78,7 @@ def train(
         progress_bar.close()
         
         epoch_loss = running_loss / len(train_loader)
+        epoch_norm = epoch_norm / len(train_loader)
         epoch_accuracy, epoch_precision, epoch_recall, epoch_f1, val_loss = evaluate(model, test_dataloader, criterion, dtype=dtype, device=device)
         
         if USING_WANDB:
@@ -91,7 +93,7 @@ def train(
                 'lr': optimizer.param_groups[0]['lr']
             })
             
-        print(f"Epoch [{epoch+1}/{epochs}] | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
+        print(f"Epoch [{epoch+1}/{epochs}] | loss: {epoch_loss:.6f} | val_loss: {val_loss:.6f} | norm: {epoch_norm:.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}")
         print(f"Metrics: accuracy: {epoch_accuracy:.4f} | precision: {epoch_precision:.4f} | recall: {epoch_recall:.4f} | f1: {epoch_f1:.4f}\n")
         model.save_checkpoint(checkpoint_path, f'epoch_{epoch+1}.pt')
         if USING_WANDB: 
@@ -121,6 +123,7 @@ if __name__ == '__main__':
     m = args.m
     reduction_factor = args.reduction_factor
     reduction_epochs = args.reduction_epochs
+    warmup_epochs = args.warmup_epochs
     
     # Seed para reproducibilidade
     set_seed(random_state)
@@ -181,7 +184,7 @@ if __name__ == '__main__':
     scaler = GradScaler()
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=5e-4)
     
-    scheduler = ArcFaceLRScheduler(optimizer, reduction_epochs=reduction_epochs, reduction_factor=reduction_factor, last_epoch=-1)
+    scheduler = ArcFaceLRScheduler(optimizer, warmup_epochs=warmup_epochs+1, reduction_epochs=reduction_epochs, reduction_factor=reduction_factor, last_epoch=-1)
 
     # -----
     
