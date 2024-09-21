@@ -11,7 +11,7 @@ import wandb.wandb_torch
 
 from models.arcfaceresnet50 import ArcFaceResNet50
 
-from utils import parse_args, transform, aug_transform, CustomDataset, evaluate, ArcFaceLRScheduler, save_model_artifact, set_seed
+from utils import parse_args, transform, aug_transform, CustomDataset, evaluate, ArcFaceLRScheduler, FocalLoss, save_model_artifact, set_seed
 
 torch.set_float32_matmul_precision('high')
 torch.backends.cudnn.benchmark = True
@@ -61,8 +61,11 @@ def train(
                 loss = loss / accumulation_steps
 
             scaler.scale(loss).backward()
-
+            
             if (step + 1) % accumulation_steps == 0:
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                
                 scaler.step(optimizer)
                 scaler.update()
                 optimizer.zero_grad()
@@ -156,7 +159,7 @@ if __name__ == '__main__':
     
     test_df = pd.read_csv(TEST_DF_PATH)
     test_df['path'] = test_df['path'].apply(lambda x: os.path.join(IMAGES_PATH, x))
-    test_df = test_df.sample(n=128, random_state=random_state).reset_index(drop=True)
+    test_df = test_df.sample(n=1024, random_state=random_state).reset_index(drop=True)
     
     # Datasets e Loaders
     train_dataset = CustomDataset(train_df, transform=aug_transform, dtype=DTYPE)
@@ -166,10 +169,10 @@ if __name__ == '__main__':
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, pin_memory=True, num_workers=num_workers)
     
     # Loss
-    criterion = nn.CrossEntropyLoss()
+    criterion = FocalLoss(gamma=2)
     
     # Modelo
-    model = ArcFaceResNet50(emb_size=emb_size, n_classes=n_classes, s=64, m=0.5).to(device)
+    model = ArcFaceResNet50(emb_size=emb_size, n_classes=n_classes, s=s, m=m).to(device)
         
     if compile:
         model = torch.compile(model)

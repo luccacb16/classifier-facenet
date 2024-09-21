@@ -10,10 +10,10 @@ cmd="python3 train.py \
   --checkpoint_path checkpoints/ \
   --random_state 42 \
   --lr 1e-1 \
-  --s 64.0 \
+  --s 30 \
   --m 0.5 \
   --reduction_factor 0.1 \
-  --reduction_epochs 0 1"
+  --reduction_epochs 20 28"
 
 echo $cmd
 $cmd
