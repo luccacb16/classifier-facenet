@@ -13,7 +13,7 @@ class ArcMarginProduct(nn.Module):
         self.s = s
         self.m = m
         self.weight = nn.Parameter(torch.FloatTensor(out_features, in_features))
-        nn.init.xavier_uniform_(self.weight)
+        nn.init.kaiming_uniform_(self.weight, mode='fan_out', nonlinearity='relu')
 
     def forward(self, input, label):
         m = torch.tensor(self.m, device=input.device, dtype=input.dtype)

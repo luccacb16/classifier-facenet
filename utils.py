@@ -91,24 +91,23 @@ def evaluate(model, val_dataloader, criterion, dtype=torch.bfloat16, device='cud
 
     return accuracy, precision, recall, f1, loss
 
-import torch
-
-import torch
-
 class ArcFaceLRScheduler(torch.optim.lr_scheduler._LRScheduler):
-    def __init__(self, optimizer, reduction_epochs=None, reduction_factor=0.1, last_epoch=-1):
+    def __init__(self, optimizer, reduction_epochs=None, reduction_factor=0.1, warmup_epochs=5, last_epoch=-1, warmup_lr=1e-6):
         self.reduction_epochs = reduction_epochs if reduction_epochs is not None else [20, 28]
         self.reduction_factor = reduction_factor
-        self.lr_reductions = {group['lr']: 1 for group in optimizer.param_groups}
-
+        self.warmup_epochs = warmup_epochs
+        self.warmup_lr = warmup_lr
+        self.initial_lrs = [group['lr'] for group in optimizer.param_groups]
         super(ArcFaceLRScheduler, self).__init__(optimizer, last_epoch)
-
+        
     def get_lr(self):
-        if self.last_epoch in self.reduction_epochs:
-            for lr in list(self.lr_reductions.keys()):
-                self.lr_reductions[lr] *= self.reduction_factor
-
-        return [lr * self.lr_reductions[lr] for lr in self.base_lrs]
+        if self.last_epoch < self.warmup_epochs:
+            warmup_factor = self.last_epoch / max(1, self.warmup_epochs - 1)
+            return [self.warmup_lr + (base_lr - self.warmup_lr) * warmup_factor for base_lr in self.initial_lrs]
+        else:
+            num_reductions = sum(epoch <= self.last_epoch for epoch in self.reduction_epochs)
+            factor = self.reduction_factor ** num_reductions
+            return [base_lr * factor for base_lr in self.initial_lrs]
 
 def save_model_artifact(checkpoint_path, epoch):
     artifact = wandb.Artifact(f'epoch_{epoch}', type='model')
