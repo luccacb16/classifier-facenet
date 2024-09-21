@@ -91,18 +91,25 @@ def evaluate(model, val_dataloader, criterion, dtype=torch.bfloat16, device='cud
 
     return accuracy, precision, recall, f1, loss
 
+import torch
+
+import torch
+
 class ArcFaceLRScheduler(torch.optim.lr_scheduler._LRScheduler):
     def __init__(self, optimizer, reduction_epochs=None, reduction_factor=0.1, last_epoch=-1):
         self.reduction_epochs = reduction_epochs if reduction_epochs is not None else [20, 28]
         self.reduction_factor = reduction_factor
-        self.lr_reductions = {base_lr: 1 for base_lr in self.base_lrs}
+        self.lr_reductions = {group['lr']: 1 for group in optimizer.param_groups}
+
         super(ArcFaceLRScheduler, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
         if self.last_epoch in self.reduction_epochs:
-            self.lr_reductions = {base_lr: self.lr_reductions[base_lr] * self.reduction_factor for base_lr in self.base_lrs}
-        return [base_lr * self.lr_reductions[base_lr] for base_lr in self.base_lrs]
-    
+            for lr in list(self.lr_reductions.keys()):
+                self.lr_reductions[lr] *= self.reduction_factor
+
+        return [lr * self.lr_reductions[lr] for lr in self.base_lrs]
+
 def save_model_artifact(checkpoint_path, epoch):
     artifact = wandb.Artifact(f'epoch_{epoch}', type='model')
     artifact.add_file(os.path.join(checkpoint_path, f'epoch_{epoch}.pt'))

@@ -13,7 +13,7 @@ cmd="python3 train.py \
   --s 64.0 \
   --m 0.5 \
   --reduction_factor 0.1 \
-  --reduction_epochs 20 28"
+  --reduction_epochs 0 1"
 
 echo $cmd
 $cmd
