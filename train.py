@@ -179,7 +179,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=5e-4)
     
     scheduler = ArcFaceLRScheduler(optimizer, reduction_epochs=reduction_epochs, reduction_factor=reduction_factor, last_epoch=-1)
-        
+        ArcFaceLRScheduler
     # -----
     
     print(f'\nModel: {model.__class__.__name__} | Params: {model.num_params/1e6:.2f}M')
