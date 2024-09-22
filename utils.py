@@ -20,7 +20,7 @@ transform = Compose([
 ])
 
 aug_transform = Compose([
-    Resize([128]),
+    Resize([128, 128]),
     RandomCrop([112, 112]),
     RandomHorizontalFlip(),
     ToTensor(),
