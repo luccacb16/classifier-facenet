@@ -13,7 +13,7 @@ from torch.utils.data import Dataset
 from torch.amp import autocast
 
 transform = Compose([
-    Resize([128]),
+    Resize([128, 128]),
     RandomCrop([112, 112]),
     ToTensor(),
     Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
