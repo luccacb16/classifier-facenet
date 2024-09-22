@@ -31,7 +31,7 @@ USING_WANDB = False
     
 def train(
     model: nn.Module,
-    train_loader: DataLoader,
+    train_dataloader: DataLoader,
     test_dataloader: DataLoader,
     criterion: nn.Module,
     optimizer: torch.optim.Optimizer,
@@ -50,10 +50,10 @@ def train(
         epoch_norm = 0.0
         optimizer.zero_grad()
         
-        num_batches = len(train_loader) // accumulation_steps
+        num_batches = len(train_dataloader) // accumulation_steps
         progress_bar = tqdm(range(num_batches), desc=f"Epoch {epoch+1}/{epochs}", unit="batch")
             
-        for step, (inputs, labels) in enumerate(train_loader):
+        for step, (inputs, labels) in enumerate(train_dataloader):
             inputs, labels = inputs.to(device, dtype=dtype), labels.to(device)
             
             with autocast(dtype=dtype, device_type=device):
@@ -77,8 +77,8 @@ def train(
         
         progress_bar.close()
         
-        epoch_loss = running_loss / len(train_loader)
-        epoch_norm = epoch_norm / len(train_loader)
+        epoch_loss = running_loss / len(train_dataloader)
+        epoch_norm = epoch_norm / num_batches
         epoch_accuracy, epoch_precision, epoch_recall, epoch_f1, val_loss = evaluate(model, test_dataloader, criterion, dtype=dtype, device=device)
         
         if USING_WANDB:
@@ -166,11 +166,11 @@ if __name__ == '__main__':
     
     # Datasets e Loaders
     train_dataset = CustomDataset(train_df, transform=aug_transform, dtype=DTYPE)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=num_workers)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=num_workers)
     
     test_dataset = CustomDataset(test_df, transform=transform, dtype=DTYPE)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, pin_memory=True, num_workers=num_workers)
-    
+
     # Loss
     criterion = FocalLoss(gamma=2)
     
@@ -197,7 +197,7 @@ if __name__ == '__main__':
     
     train(
         model              = model,
-        train_loader       = train_loader,
+        train_dataloader   = train_dataloader,
         test_dataloader    = test_dataloader,
         criterion          = criterion,
         optimizer          = optimizer,
